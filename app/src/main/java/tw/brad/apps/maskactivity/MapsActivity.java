@@ -7,8 +7,11 @@ import androidx.fragment.app.FragmentActivity;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.util.Log;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -43,9 +46,45 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     }
-
+    private MyListener myListener;
     private void init(){
         lmgr = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        myListener = new MyListener();
+        lmgr.requestLocationUpdates(LocationManager.GPS_PROVIDER,
+                0, 0, myListener);
+    }
+
+    @Override
+    public void finish() {
+        if (lmgr != null){
+            lmgr.removeUpdates(myListener);
+        }
+        super.finish();
+    }
+
+    private double nowLat, nowLng;
+
+    private class MyListener implements LocationListener {
+        @Override
+        public void onLocationChanged(@NonNull Location location) {
+            nowLat = location.getLatitude();
+            nowLng = location.getLongitude();
+            moveCamera();
+        }
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+
+        }
+
+        @Override
+        public void onProviderEnabled(@NonNull String provider) {
+
+        }
+
+        @Override
+        public void onProviderDisabled(@NonNull String provider) {
+
+        }
     }
 
     @Override
@@ -65,10 +104,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-
-        // Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(-34, 151);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+        moveCamera();
     }
+
+    private void moveCamera(){
+        if (mMap != null) {
+            LatLng here = new LatLng(nowLat, nowLng);
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(here));
+            mMap.animateCamera(CameraUpdateFactory.zoomTo(17));
+        }
+    }
+
 }
