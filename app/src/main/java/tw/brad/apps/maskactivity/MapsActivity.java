@@ -20,6 +20,12 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
     private LocationManager lmgr;
     private GoogleMap mMap;
@@ -32,6 +38,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+
 
         if (ContextCompat.checkSelfPermission(
                 this, Manifest.permission.ACCESS_FINE_LOCATION) ==
@@ -48,6 +56,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
     private MyListener myListener;
     private void init(){
+        new Thread(){
+            @Override
+            public void run() {
+                fetchOpendata();
+            }
+        }.start();
+
+
         lmgr = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         myListener = new MyListener();
         lmgr.requestLocationUpdates(LocationManager.GPS_PROVIDER,
@@ -114,5 +130,29 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             mMap.animateCamera(CameraUpdateFactory.zoomTo(17));
         }
     }
+
+    private void fetchOpendata(){
+        // https://data.nhi.gov.tw/resource/mask/maskdata.csv
+        try {
+            URL url = new URL("https://data.nhi.gov.tw/resource/mask/maskdata.csv");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.connect();
+            InputStream in = conn.getInputStream();
+            InputStreamReader ireader = new InputStreamReader(in);
+            BufferedReader reader = new BufferedReader(ireader);
+            reader.readLine(); String line = null;
+            while ( (line = reader.readLine()) != null){
+                String[] fields = line.split(",");
+                Log.v("bradlog", fields[1] +":" + fields[2] +":" +
+                        fields[4] + ":" + fields[5]);
+            }
+            reader.close();
+
+        }catch (Exception e){
+            Log.v("bradlog", e.toString());
+        }
+
+    }
+
 
 }
