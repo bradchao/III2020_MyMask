@@ -5,6 +5,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -196,6 +197,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             final String mid = point.get("mid");
             String address = point.get("address");
 
+            if (!address.contains("臺中市")) continue;
+
             // 先檢查資料庫有沒有該筆資料
             // SELECT * FROM mask WHERE mid = 'xxxx'
             Cursor cursor = database.query("mask", null,
@@ -204,6 +207,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (cursor.getCount()>0){
                 //
                 Log.v("bradlog", "old data");
+                cursor.moveToNext();
+                double lat = cursor.getDouble(cursor.getColumnIndex("lat"));
+                double lng = cursor.getDouble(cursor.getColumnIndex("lng"));
+                addMarker(lat,lng);
             }else{
                 //
                 StringRequest request = new StringRequest(
@@ -234,10 +241,31 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 JSONObject location = geometry.getJSONObject("location");
                 Double lat = location.getDouble("lat");
                 Double lng = location.getDouble("lng");
+
+                // INSERT INTO mask (mid,lat,lng) VALUES (mid,lat,lng)
+                ContentValues values = new ContentValues();
+                values.put("mid", mid);
+                values.put("lat", lat);
+                values.put("lng", lng);
+                database.insert("mask", null, values);
+
+                addMarker(lat, lng);
             }
         }catch (Exception e){
             Log.v("bradlog", e.toString());
         }
     }
+
+    private void addMarker(final double lat, final double lng){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                LatLng latLng = new LatLng(lat, lng);
+                mMap.addMarker(new MarkerOptions()
+                        .position(latLng));
+            }
+        });
+    }
+
 
 }
