@@ -15,12 +15,20 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -35,11 +43,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     private MyDBOpenHelper openHelper;
     private SQLiteDatabase database;
+    private RequestQueue queue;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+        queue = Volley.newRequestQueue(this);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -182,7 +192,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private void navData(){
         for (int i=0; i<data.size(); i++){
             HashMap<String,String> point = data.get(i);
-            String mid = point.get("mid");
+            final int index = i;
+            final String mid = point.get("mid");
             String address = point.get("address");
 
             // 先檢查資料庫有沒有該筆資料
@@ -192,12 +203,41 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     null, null, null);
             if (cursor.getCount()>0){
                 //
+                Log.v("bradlog", "old data");
             }else{
                 //
-
+                StringRequest request = new StringRequest(
+                        Request.Method.GET,
+                        "https://maps.googleapis.com/maps/api/geocode/json?address=" + address + "&key=AIzaSyA4-fi8GzN9qJYGa7WJKlYPpzbgYeg-Zbg",
+                        new Response.Listener<String>() {
+                            @Override
+                            public void onResponse(String response) {
+                                parseAddress(index, mid, response);
+                            }
+                        },
+                        null
+                );
+                queue.add(request);
             }
         }
     }
 
+    private void parseAddress(int index, String mid, String json){
+        Log.v("bradlog", "new data");
+        try {
+            JSONObject root = new JSONObject(json);
+            String status = root.getString("status");
+            if (status.equals("OK")){
+                JSONArray results = root.getJSONArray("results");
+                JSONObject row = results.getJSONObject(0);
+                JSONObject geometry = row.getJSONObject("geometry");
+                JSONObject location = geometry.getJSONObject("location");
+                Double lat = location.getDouble("lat");
+                Double lng = location.getDouble("lng");
+            }
+        }catch (Exception e){
+            Log.v("bradlog", e.toString());
+        }
+    }
 
 }
