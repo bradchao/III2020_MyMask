@@ -7,6 +7,8 @@ import androidx.fragment.app.FragmentActivity;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -25,10 +27,14 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.LinkedList;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
     private LocationManager lmgr;
     private GoogleMap mMap;
+    private MyDBOpenHelper openHelper;
+    private SQLiteDatabase database;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,6 +69,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }.start();
 
+        openHelper = new MyDBOpenHelper(this, "mask", null, 1);
+        database = openHelper.getReadableDatabase();
 
         lmgr = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         myListener = new MyListener();
@@ -131,12 +139,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    private static final int MID = 0;
     private static final int NAME = 1;
     private static final int ADDRESS = 2;
+    private static final int TEL = 3;
     private static final int ADULT = 4;
     private static final int CHILD = 5;
+    private LinkedList<HashMap<String,String>> data = new LinkedList<>();
 
     private void fetchOpendata(){
+        data.clear();
         // https://data.nhi.gov.tw/resource/mask/maskdata.csv
         try {
             URL url = new URL("https://data.nhi.gov.tw/resource/mask/maskdata.csv");
@@ -150,13 +162,41 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 String[] fields = line.split(",");
                 Log.v("bradlog", fields[NAME] +":" + fields[ADDRESS] +":" +
                         fields[ADULT] + ":" + fields[CHILD]);
+                HashMap<String,String> row = new HashMap<>();
+                row.put("mid", fields[MID]);
+                row.put("name", fields[NAME]);
+                row.put("address", fields[ADDRESS]);
+                row.put("tel", fields[TEL]);
+                row.put("adult", fields[ADULT]);
+                row.put("child", fields[CHILD]);
+                data.add(row);
             }
             reader.close();
-
+            navData();
         }catch (Exception e){
             Log.v("bradlog", e.toString());
         }
 
+    }
+
+    private void navData(){
+        for (int i=0; i<data.size(); i++){
+            HashMap<String,String> point = data.get(i);
+            String mid = point.get("mid");
+            String address = point.get("address");
+
+            // 先檢查資料庫有沒有該筆資料
+            // SELECT * FROM mask WHERE mid = 'xxxx'
+            Cursor cursor = database.query("mask", null,
+                    "mid = ?", new String[]{mid},
+                    null, null, null);
+            if (cursor.getCount()>0){
+                //
+            }else{
+                //
+
+            }
+        }
     }
 
 
