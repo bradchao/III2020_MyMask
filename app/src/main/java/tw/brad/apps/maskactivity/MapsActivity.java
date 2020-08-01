@@ -131,6 +131,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    private static final int NAME = 1;
+    private static final int ADDRESS = 2;
+    private static final int ADULT = 4;
+    private static final int CHILD = 5;
+
     private void fetchOpendata(){
         // https://data.nhi.gov.tw/resource/mask/maskdata.csv
         try {
@@ -143,8 +148,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             reader.readLine(); String line = null;
             while ( (line = reader.readLine()) != null){
                 String[] fields = line.split(",");
-                Log.v("bradlog", fields[1] +":" + fields[2] +":" +
-                        fields[4] + ":" + fields[5]);
+                Log.v("bradlog", fields[NAME] +":" + fields[ADDRESS] +":" +
+                        fields[ADULT] + ":" + fields[CHILD]);
             }
             reader.close();
 
