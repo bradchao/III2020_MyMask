@@ -98,13 +98,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private double nowLat, nowLng;
+    private boolean isInitHere = false;
 
     private class MyListener implements LocationListener {
         @Override
         public void onLocationChanged(@NonNull Location location) {
-            nowLat = location.getLatitude();
-            nowLng = location.getLongitude();
-            moveCamera();
+            if (!isInitHere) {
+                isInitHere = true;
+                nowLat = location.getLatitude();
+                nowLng = location.getLongitude();
+                moveCamera();
+            }
         }
         @Override
         public void onStatusChanged(String provider, int status, Bundle extras) {
@@ -210,7 +214,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 cursor.moveToNext();
                 double lat = cursor.getDouble(cursor.getColumnIndex("lat"));
                 double lng = cursor.getDouble(cursor.getColumnIndex("lng"));
-                addMarker(lat,lng);
+                addMarker(lat,lng, point.get("name"),
+                        Integer.parseInt(point.get("adult")),
+                        Integer.parseInt(point.get("child")));
             }else{
                 //
                 StringRequest request = new StringRequest(
@@ -249,20 +255,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 values.put("lng", lng);
                 database.insert("mask", null, values);
 
-                addMarker(lat, lng);
+                addMarker(lat, lng, data.get(index).get("name"),
+                        Integer.parseInt(data.get(index).get("adult")),
+                        Integer.parseInt(data.get(index).get("child")));
             }
         }catch (Exception e){
             Log.v("bradlog", e.toString());
         }
     }
 
-    private void addMarker(final double lat, final double lng){
+    private void addMarker(final double lat, final double lng,
+                           final String name,
+                           final int adult, final int child){
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 LatLng latLng = new LatLng(lat, lng);
                 mMap.addMarker(new MarkerOptions()
-                        .position(latLng));
+                        .position(latLng)
+                        .title(name)
+                        .snippet("大人:"+adult+";兒童:"+ child));
             }
         });
     }
